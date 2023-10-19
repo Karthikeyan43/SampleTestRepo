@@ -1,0 +1,95 @@
+name: Build and Deploy to Production
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch: # Manual trigger
+
+ 
+
+jobs:
+  build-and-deploy-dev:
+    runs-on: ubuntu-latest
+
+ 
+
+    steps:
+      - name: Checkout code from master branch
+        uses: actions/checkout@v2
+        with:
+          ref: 'master'
+
+ 
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14
+
+ 
+
+      - name: Install dependencies for frontend
+        run: npm install
+        working-directory: azure-front-end
+
+ 
+
+      - name: Build React app for frontend
+        run: npm run build
+        working-directory: azure-front-end
+
+ 
+
+      - name: Copy static files from frontend build to prd branch
+        run: |
+          buildSource="azure-front-end/build"
+          destination="prd"
+
+ 
+
+          git checkout prd
+          cp -r "$buildSource/static/." "$destination/static/"
+          shopt -s dotglob 
+          shopt -s extglob 
+          find "$buildSource" -mindepth 1 -maxdepth 1 ! -name "static" -exec cp -r {} "$destination/static/" \;
+
+ 
+
+          git add -A
+          git commit -m "Update production branch with latest frontend build"
+          git push origin prd
+        shell: bash
+
+ 
+
+  build-and-deploy-main:
+    runs-on: ubuntu-latest
+
+ 
+
+    steps:
+      - name: Checkout code from master branch
+        uses: actions/checkout@v2
+        with:
+          ref: 'master'
+
+ 
+
+      # Other steps for building and deploying to main branch go here
+
+ 
+
+  deploy-to-prd:
+    runs-on: ubuntu-latest
+
+ 
+
+    steps:
+      - name: Checkout code from prd branch
+        uses: actions/checkout@v2
+        with:
+          ref: 'prd'
+
+ 
+
+      # Other steps for deploying to prd branch go here
